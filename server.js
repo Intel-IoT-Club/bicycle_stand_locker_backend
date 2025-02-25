@@ -104,7 +104,7 @@ app.post("/generate", async (req, res) => {
             return res.status(409).json({ error: `Location ID "${locationid}" already exists.` });
         }
 
-        const qrURL = `${req.protocol}://${req.get("host")}/scan?locationid=${encodeURIComponent(locationid)}`;
+        const qrURL = `https://bicycle-locker.vercel.app/scan?locationid=${encodeURIComponent(locationid)}`;
         const qrData = await QRCode.toDataURL(qrURL);
 
         const newQR = new QRImage({ locationid, qrData });
