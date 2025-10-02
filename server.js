@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const paymentRoutes = require("./routes/paymentRoutes");
 const walletRoutes = require("./routes/walletRoutes");
+const cycleRoutes = require('./routes/cycleRoutes');
 
 const app = express();
 app.use(cors());
@@ -17,6 +18,7 @@ mongoose.connect(process.env.MONGODB_URI)
 
 app.use("/api/payments", paymentRoutes);
 app.use("/api/wallet", walletRoutes);
+app.use('/api/cycles', cycleRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
