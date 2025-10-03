@@ -32,6 +32,7 @@ exports.getAllCycles = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 exports.deleteAllCycles = async (req, res) => {
     try {
         const result = await Cycle.deleteMany({});
@@ -40,4 +41,31 @@ exports.deleteAllCycles = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+};
+
+exports.getNearestCycles = async (req, res) => {
+  const { boarding, destination } = req.body; // boarding = { lat, lng }
+
+  if (!boarding) {
+    return res.status(400).json({ error: "Boarding coordinates are required" });
+  }
+
+  try {
+    // Find cycles sorted by distance from boarding point
+    const cycles = await Cycle.find({
+      location: {
+        $nearSphere: {
+          $geometry: {
+            type: "Point",
+            coordinates: [boarding.lng, boarding.lat] // MongoDB expects [lng, lat]
+          }
+        }
+      }
+    });
+
+    res.status(200).json({ cycles: cycles });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
 };
