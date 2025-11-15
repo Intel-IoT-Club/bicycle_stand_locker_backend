@@ -248,14 +248,19 @@ exports.deleteAllCycles = async (req, res) => {
 };
 
 exports.getNearestCycles = async (req, res) => {
-  const { boarding } = req.body;
+  const { boarding, destination } = req.body;
 
   if (!boarding) {
     return res.status(400).json({ error: "Boarding coordinates are required" });
   }
 
+  if (!destination) {
+    return res.status(400).json({ error: "Destination coordinates are required" });
+  }
+
   try {
     const nearbyCycles = await Cycle.find({
+      availabilityFlag: true, 
       location: {
         $nearSphere: {
           $geometry: {
@@ -266,19 +271,23 @@ exports.getNearestCycles = async (req, res) => {
       },
     }).limit(10);
 
-    if (!nearbyCycles.length)
+    if (!nearbyCycles.length) {
       return res.status(200).json({ cycles: [] });
-
-    const locations = [
-      [boarding.lng, boarding.lat],
-      ...nearbyCycles.map(c => c.location.coordinates),
-    ];
+    }
 
     const orsKey = process.env.ORS_API_KEY;
-    const matrixRes = await axios.post(
-      "https://api.openrouteservice.org/v2/matrix/foot-walking",
+    const orsBaseUrl = "https://api.openrouteservice.org/v2/matrix";
+
+    // ------------------- WALKING MATRIX (boarding -> cycles) -------------------
+    const walkingLocations = [
+      [boarding.lng, boarding.lat],
+      ...nearbyCycles.map((c) => c.location.coordinates),
+    ];
+
+    const walkingReq = axios.post(
+      `${orsBaseUrl}/foot-walking`,
       {
-        locations,
+        locations: walkingLocations,
         metrics: ["distance", "duration"],
       },
       {
@@ -290,18 +299,70 @@ exports.getNearestCycles = async (req, res) => {
       }
     );
 
-    // Extract values correctly (skip first element = origin→origin)
-    const durations = matrixRes.data.durations[0].slice(1);
-    const distances = matrixRes.data.distances[0].slice(1);
+    // ------------------- CYCLING MATRIX (cycles -> destination) -------------------
+    const cyclingLocations = [
+      ...nearbyCycles.map((c) => c.location.coordinates),
+      [destination.lng, destination.lat],
+    ];
+    const destinationIndex = cyclingLocations.length - 1; // last index
 
-    const cyclesWithETA = nearbyCycles.map((cycle, i) => ({
-      ...cycle.toObject(),
-      etaMinutes: Math.round(durations[i] / 60).toFixed(2),
-      distanceKm: (distances[i] / 1000).toFixed(2),
-    }));
+    const cyclingReq = axios.post(
+      `${orsBaseUrl}/cycling-regular`,
+      {
+        locations: cyclingLocations,
+        metrics: ["distance", "duration"],
+        sources: nearbyCycles.map((_, idx) => idx),
+        destinations: [destinationIndex],
+      },
+      {
+        headers: {
+          Authorization: orsKey,
+          "Content-Type": "application/json; charset=utf-8",
+          Accept: "application/json, application/geo+json",
+        },
+      }
+    );
 
-    // Sort by ETA, not raw distance
-    cyclesWithETA.sort((a, b) => a.etaMinutes - b.etaMinutes);
+    const [walkingRes, cyclingRes] = await Promise.all([walkingReq, cyclingReq]);
+
+    // Walking results
+    const walkingDurations = walkingRes.data.durations[0].slice(1); // seconds
+    const walkingDistances = walkingRes.data.distances[0].slice(1); // meters
+
+    // Cycling results
+    const rideDurations = cyclingRes.data.durations.map((row) => row[0]);
+    const rideDistances = cyclingRes.data.distances.map((row) => row[0]);
+
+    const cyclesWithETA = nearbyCycles.map((cycle, i) => {
+      const walkDurationSec = walkingDurations[i];
+      const walkDistanceM = walkingDistances[i];
+      const rideDurationSec = rideDurations[i];
+      const rideDistanceM = rideDistances[i];
+
+      const walkMinutes = walkDurationSec / 60;
+      const rideMinutes = rideDurationSec / 60;
+      const walkKm = walkDistanceM / 1000;
+      const rideKm = rideDistanceM / 1000;
+
+      return {
+        ...cycle.toObject(),
+
+        // Walk (boarding → cycle)
+        walkEtaMinutes: Number(walkMinutes.toFixed(2)),
+        walkDistanceKm: Number(walkKm.toFixed(2)),
+
+        // Ride (cycle → destination)
+        rideEtaMinutes: Number(rideMinutes.toFixed(2)),
+        rideDistanceKm: Number(rideKm.toFixed(2)),
+
+        // Total journey
+        totalTimeMinutes: Number((walkMinutes + rideMinutes).toFixed(2)),
+        totalDistanceKm: Number((walkKm + rideKm).toFixed(2)),
+      };
+    });
+
+    // Sort cycles by **total time** ascending
+    cyclesWithETA.sort((a, b) => a.totalTimeMinutes - b.totalTimeMinutes);
 
     res.status(200).json({ cycles: cyclesWithETA });
 
@@ -310,6 +371,7 @@ exports.getNearestCycles = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch matrix data" });
   }
 };
+
 
 exports.getBikeRoute = async (req, res) => {
   const { boarding, bike, destination } = req.body;
@@ -323,7 +385,7 @@ exports.getBikeRoute = async (req, res) => {
 
     // ORS API call: Boarding -> Bike -> Destination
     const response = await axios.post(
-      "https://api.openrouteservice.org/v2/directions/cycling-regular/geojson",
+      "https://api.openrouteservice.org/v2/directions/foot-walking/geojson",
       {
         coordinates: [
           [boarding.lng, boarding.lat],
@@ -341,19 +403,51 @@ exports.getBikeRoute = async (req, res) => {
     );
 
     const feature = response.data.features[0];
-    const summary = feature.properties.summary;
     const geometry = feature.geometry.coordinates; // full route coordinates
-    const distanceKm = (summary.distance / 1000).toFixed(2);
-    const durationMin = Math.round(summary.duration / 60);
 
-    res.status(200).json({
-      geometry,
-      distanceKm,
-      durationMin
-    });
+    res.status(200).json({geometry});
 
   } catch (error) {
     console.error(error.response?.data || error.message);
     res.status(500).json({ error: "Failed to fetch route from ORS" });
+  }
+};
+
+// Update a cycle (partial update allowed)
+// Example: PATCH /api/cycles/:id  with body { availabilityFlag: false }
+// Example: PATCH /api/cycles/:id  with body { status: "unlocked" }
+exports.updateCycle = async (req, res) => {
+  try {
+    const cycleId = req.params.id || req.params.cycleId || req.body._id;
+    if (!cycleId) {
+      return res.status(400).json({ error: "Cycle id is required in URL param" });
+    }
+
+    const allowed = ["availabilityFlag", "status", "battery", "lastSeen", "location", "ownerID", "cycleName"];
+    const updates = Object.keys(req.body);
+    const isValidOp = updates.every((u) => allowed.includes(u));
+
+    if (!isValidOp) {
+      return res.status(400).json({ error: "Invalid fields in update. Allowed: " + allowed.join(", ") });
+    }
+
+    const updatePayload = {};
+    updates.forEach((k) => (updatePayload[k] = req.body[k]));
+
+    // If lastSeen provided as timestamp string/number, convert to Date
+    if (updatePayload.lastSeen) {
+      updatePayload.lastSeen = new Date(updatePayload.lastSeen);
+    }
+
+    const updated = await Cycle.findByIdAndUpdate(cycleId, updatePayload, { new: true, runValidators: true });
+
+    if (!updated) {
+      return res.status(404).json({ error: "Cycle not found" });
+    }
+
+    return res.status(200).json({ message: "Cycle updated", cycle: updated });
+  } catch (error) {
+    console.error("updateCycle error:", error);
+    return res.status(500).json({ error: error.message });
   }
 };
