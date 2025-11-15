@@ -16,7 +16,7 @@ router.post("/create-order", async (req, res) => {
       currency: "INR",
     };
     const order = await razorpay.orders.create(options);
-    res.json(order);
+    res.json({order});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -65,6 +65,21 @@ router.post("/verify", async (req, res) => {
     console.error("Payment verification error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
+});
+router.post("/verifyPay", async (req, res) => {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    const sign = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSign = crypto
+        .createHmac("sha256", process.env.RAZORPAY_SECRET)
+        .update(sign.toString())
+        .digest("hex");
+
+    if (razorpay_signature === expectedSign) {
+        return res.status(200).json({ success: true, message: "Payment verified" });
+    } else {
+        return res.status(400).json({ success: false, message: "Verification failed" });
+    }
 });
 
 module.exports = router;
