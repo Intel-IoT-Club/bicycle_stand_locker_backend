@@ -362,7 +362,7 @@ exports.getNearestCycles = async (req, res) => {
     });
 
     // Sort cycles by **total time** ascending
-    cyclesWithETA.sort((a, b) => a.totalTimeMinutes - b.totalTimeMinutes);
+    cyclesWithETA.sort((a, b) => a.rideMinutes - b.totalTimeMinutes);
 
     res.status(200).json({ cycles: cyclesWithETA });
 
