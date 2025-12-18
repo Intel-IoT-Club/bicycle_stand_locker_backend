@@ -63,7 +63,6 @@ exports.signup = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-    console.log(user);
     res.status(201).json({
       message: "Account created successfully",
       token,

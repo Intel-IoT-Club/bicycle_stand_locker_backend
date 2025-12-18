@@ -40,20 +40,22 @@ app.use(cors({
 }))
 app.use(session(sessionOptions));
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch(err => console.error("❌ MongoDB Error:", err));
+  .then(() => console.log(" MongoDB Connected"))
+  .catch(err => console.error(" MongoDB Error:", err));
 
 const paymentRoutes = require("./routes/paymentRoutes");
 const walletRoutes = require("./routes/walletRoutes");
 const cycleRoutes = require('./routes/cycleRoutes');
 const rideRoutes=require('./routes/rideRoutes');
 const userRoutes = require('./routes/userRoutes');
+const fareRoutes = require('./routes/fareRoutes');
 
 app.use("/api/payments", paymentRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use('/api/cycles', cycleRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/auth', userRoutes);
+app.use('/api/fare',fareRoutes)
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(` Server running on port ${PORT}`));

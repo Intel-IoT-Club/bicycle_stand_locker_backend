@@ -1,5 +1,6 @@
 const Ride = require("../models/Ride");
 const Cycle = require("../models/Cycle");
+const { calculateFare } = require("../utils/fareCalculator");
 
 //createRide
 exports.createRide = async (req, res) => {
@@ -11,17 +12,15 @@ exports.createRide = async (req, res) => {
     payment = { paid: false, amount: 0 },
     plannedDistanceKm,
     plannedDurationMin,
-    riderId,
     meta = {},
   } = req.body;
+  console.log("User recieved:");
+  console.log(req.user);
 
   if (!bikeId || !boarding || !destination) {
     return res
       .status(400)
       .json({ error: "bikeId, boarding and destination are required" });
-  }
-  if (!riderId) {
-    return res.status(400).json({ error: "riderId is required" });
   }
 
   try {
@@ -39,10 +38,9 @@ exports.createRide = async (req, res) => {
     const rideDoc = {
       bikeId,
       bikeName: bikeName || cycle.cycleName || "",
-      riderId: String(riderId),
+      riderId: req.user.id,
       boarding,
       destination,
-      startRequestedAt: new Date(),
       status: "started",
       payment, // in your new flow: { paid: false, method: 'postpaid', amount: <estimated> }
       plannedDistanceKm,
@@ -126,7 +124,7 @@ exports.startRide = async (req, res) => {
     ride.startedAt = new Date();
     await ride.save();
 
-    await Cycle.findByIdAndUpdate(ride.bikeId, { availabilityFlag:"false", status: "unlocked" });
+    await Cycle.findByIdAndUpdate(ride.bikeId, { availabilityFlag: false, status: "unlocked" });
 
     res.status(200).json({ ride });
 
@@ -137,13 +135,29 @@ exports.startRide = async (req, res) => {
 };
 
 //End ride
+// End Ride
 exports.endRide = async (req, res) => {
   try {
+    const { distanceKm, timeMin, endLocation } = req.body;
+
     const ride = await Ride.findById(req.params.id);
-    if (!ride) return res.status(404).json({ error: "Ride not found" });
+    if (!ride) {
+      return res.status(404).json({ error: "Ride not found" });
+    }
+
+    if (ride.status === "finished") {
+      return res.status(400).json({ error: "Ride already ended" });
+    }
 
     ride.status = "finished";
     ride.endedAt = new Date();
+    ride.finalDistanceKm = distanceKm;
+    ride.finalDurationMin = timeMin;
+    ride.endLocation = endLocation;
+
+    // Freeze final fare
+    ride.finalFare = ride.fare;
+
     await ride.save();
 
     await Cycle.findByIdAndUpdate(ride.bikeId, {
@@ -151,10 +165,40 @@ exports.endRide = async (req, res) => {
       status: "locked"
     });
 
-    res.status(200).json({ ride });
+    res.status(200).json({
+      message: "Ride ended successfully",
+      finalFare: ride.finalFare,
+      ride
+    });
 
   } catch (err) {
     console.error("endRide error:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
+
+//Update fare
+exports.updateMetrics = async (req, res) => {
+  const { distanceKm, timeMin } = req.body;
+
+  const ride = await Ride.findById(req.params.rideId);
+  if (!ride) return res.status(404).json({ error: "Ride not found" });
+  if (ride.status === "finished") {
+    return res.status(400).json({ error: "Ride already ended" });
+  }
+
+  const fare = calculateFare({
+    distanceKm,
+    timeMin,
+    bikeType: ride.bikeType || "Non-Geared",
+  });
+
+  ride.distanceKm = distanceKm;
+  ride.timeMin = timeMin;
+  ride.payment.amount = fare;
+
+  await ride.save();
+
+  res.json({ fare });
+}

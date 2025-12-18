@@ -32,16 +32,15 @@ const RideSchema = new Schema(
     bikeId: { type: Schema.Types.ObjectId, ref: "Cycle", required: true },
     bikeName: { type: String },
 
-    riderId: { type: String, required: true },
+    riderId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
 
-    boarding: {
-      type: PointSchema,
-      required: true
-    },
-    destination: {
-      type: PointSchema,
-      required: true
-    },
+    boarding: { type: PointSchema, required: true },
+    destination: { type: PointSchema, required: true },
+    endLocation: { type: PointSchema },
 
     status: {
       type: String,
@@ -57,10 +56,20 @@ const RideSchema = new Schema(
     plannedDistanceKm: { type: Number },
     plannedDurationMin: { type: Number },
 
+    distanceKm: { type: Number },          // live
+    timeMin: { type: Number },              // live
+
+    finalDistanceKm: { type: Number },
+    finalDurationMin: { type: Number },
+
+    fare: { type: Number, default: 0 },     // live fare
+    finalFare: { type: Number },             // frozen
+
     meta: { type: Schema.Types.Mixed }
   },
   { timestamps: true }
 );
+
 
 // Geospatial indexes for tracking user starting points and route ends
 RideSchema.index({ boarding: "2dsphere" });
