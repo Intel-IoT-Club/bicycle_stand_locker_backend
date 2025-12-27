@@ -14,7 +14,6 @@ exports.getAllCycles = async (req, res) => {
 exports.deleteAllCycles = async (req, res) => {
     try {
         const result = await Cycle.deleteMany({});
-        console.log("Deleted Cycles:", result);
         res.status(200).json({ message: "All cycles deleted", deletedCount: result.deletedCount });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -149,7 +148,6 @@ exports.getNearestCycles = async (req, res) => {
 
 exports.getBikeRoute = async (req, res) => {
   const { boarding, bike, destination } = req.body;
-  console.log(boarding, bike, destination);
 
   if (!boarding || !destination) {
     return res.status(400).json({

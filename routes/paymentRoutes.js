@@ -15,6 +15,7 @@ router.post("/create-order", async (req, res) => {
     const options = {
       amount: req.body.amount * 100,
       currency: "INR",
+      receipt: "receipt_" + Date.now(),
     };
     const order = await razorpay.orders.create(options);
     res.json({ order });
@@ -69,7 +70,6 @@ router.post("/verify", async (req, res) => {
 });
 router.post("/verifyPay", async (req, res) => {
   try {
-    console.log("req.body: ", JSON.stringify(req.body, null, 2));
 
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body.response;
     const rideData = req.body.ride;
@@ -83,12 +83,6 @@ router.post("/verifyPay", async (req, res) => {
       .createHmac("sha256", process.env.RAZORPAY_SECRET)
       .update(sign.toString())
       .digest("hex");
-
-    console.log("expectedSign: ", expectedSign);
-    console.log("razorpay_signature: ", razorpay_signature);
-    console.log("Match check:", expectedSign === razorpay_signature);
-    console.log("Lengths:", expectedSign.length, razorpay_signature.length);
-    console.log("Types:", typeof expectedSign, typeof razorpay_signature);
 
     if (expectedSign === razorpay_signature) {
       const rideId = rideData._id;

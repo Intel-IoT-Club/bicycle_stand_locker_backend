@@ -55,7 +55,6 @@ exports.signup = async (req, res) => {
       password: hashedPassword,
     });
     await user.save();
-    console.log("New user created:", user._id);
 
     // Create JWT including role
     const token = jwt.sign(

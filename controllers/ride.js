@@ -14,8 +14,6 @@ exports.createRide = async (req, res) => {
     plannedDurationMin,
     meta = {},
   } = req.body;
-  console.log("User recieved:");
-  console.log(req.user);
 
   if (!bikeId || !boarding || !destination) {
     return res

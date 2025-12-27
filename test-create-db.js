@@ -13,7 +13,6 @@ async function run() {
       balance: 100
     });
 
-    console.log("User created:", user);
     process.exit();
   } catch (err) {
     console.error("Error:", err);
