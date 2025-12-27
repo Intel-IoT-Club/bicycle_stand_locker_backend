@@ -10,16 +10,30 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_SECRET,
 });
 
+// Debugging logs
 router.post("/create-order", async (req, res) => {
   try {
+    console.log("Create Order Request Body:", req.body);
+    const { amount } = req.body;
+
+    if (!amount || isNaN(amount)) {
+      console.error("Invalid amount received:", amount);
+      return res.status(400).json({ error: "Invalid amount. Amount must be a number." });
+    }
+
     const options = {
-      amount: req.body.amount * 100,
+      amount: Math.round(Number(amount) * 100), // Ensure it's an integer
       currency: "INR",
       receipt: "receipt_" + Date.now(),
     };
+
+    console.log("Creating Razorpay order with options:", options);
     const order = await razorpay.orders.create(options);
+    console.log("Razorpay order created:", order);
+
     res.json({ order });
   } catch (err) {
+    console.error("Error creating Razorpay order:", err);
     res.status(500).json({ error: err.message });
   }
 });
