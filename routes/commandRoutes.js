@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Command = require('../models/Command');
-const authMiddleware = require('../middleware/auth');
+const auth = require('../middlewares/authenticate');
 
 // POST /api/command - App sends command to lock/unlock
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', auth, async (req, res) => {
     try {
         const { cycleId, command } = req.body;
 
@@ -26,7 +26,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // GET /api/command/:cycleId - ESP32 fetches latest command
-router.get('/:cycleId', authMiddleware, async (req, res) => {
+router.get('/:cycleId', auth, async (req, res) => {
     try {
         const { cycleId } = req.params;
         const command = await Command.findOne({ cycleId }).sort({ createdAt: -1 });

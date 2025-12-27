@@ -1,6 +1,7 @@
 const Ride = require("../models/Ride");
 const Cycle = require("../models/Cycle");
 const { calculateFare } = require("../utils/fareCalculator");
+const axios = require("axios");
 
 //createRide
 exports.createRide = async (req, res) => {
@@ -124,6 +125,15 @@ exports.startRide = async (req, res) => {
 
     await Cycle.findByIdAndUpdate(ride.bikeId, { availabilityFlag: false, status: "unlocked" });
 
+    await axios.post(`${process.env.BACKEND_URL}/api/command`,{
+      cycleId: ride.bikeId,
+      command: "unlock",
+    },{
+      headers: {
+        Authorization: req.headers.authorization
+      }
+    });
+
     res.status(200).json({ ride });
 
   } catch (err) {
@@ -161,6 +171,15 @@ exports.endRide = async (req, res) => {
     await Cycle.findByIdAndUpdate(ride.bikeId, {
       availabilityFlag: true,
       status: "locked"
+    });
+
+    await axios.post(`${process.env.BACKEND_URL}/api/command`,{
+      cycleId: ride.bikeId,
+      command: "lock",
+    },{
+      headers: {
+        Authorization: req.headers.authorization
+      }
     });
 
     res.status(200).json({

@@ -18,16 +18,13 @@ const sessionOptions={
         httpOnly:true,
         sameSite:"none",
         secure:true,
-        domain:"localhost:3000",
+        domain:process.env.BACKEND_URL,
         maxAge:7 * 24 * 60 * 60 * 1000,
     },
 };
 const allowedOrigins=[
-    "http://localhost:5173",
-    "http://localhost:5174",
-    'https://bicycle-locker.vercel.app',
-    'http://localhost:3000',
-    process.env.FRONTEND_URL
+    process.env.FRONTEND_URL,
+    process.env.BACKEND_URL
 ]
 app.use(cors({
     origin:(origin,callback)=>{
