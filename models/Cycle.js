@@ -3,10 +3,9 @@ const mongoose = require('mongoose');
 const CycleSchema = new mongoose.Schema({
     cycleName: { type: String },
     cycleId: { type: String, required: true, unique: true },
-    ownerID: { type: String, required: true },
+    ownerID: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     status: { type: String, enum: ['locked', 'unlocked'], default: 'locked' },
     type: { type: String, enum: ['Geared', 'NonGeared'], required: true },
-    battery: { type: Number, min: 0, max: 100 },
     location: {
         type: {
             type: String,
@@ -20,7 +19,8 @@ const CycleSchema = new mongoose.Schema({
         }
     },
     lastSeen: { type: Date, default: Date.now },
-    availabilityFlag: { type: Boolean, default: true }
+    availabilityFlag: { type: Boolean, default: true },
+    health: { type: String, enum: ['Excellent', 'Good', 'Fair', 'Bad', 'Critical'], default: 'Excellent' }
 });
 
 // Add geospatial index

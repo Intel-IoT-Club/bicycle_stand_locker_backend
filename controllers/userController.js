@@ -1,5 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 const User = require("../models/User");
 
 // Helper: validate role
@@ -30,17 +32,17 @@ exports.signup = async (req, res) => {
     }
 
     // Check uniqueness: email, username, phone
-    const existingEmail = await User.findOne({ email:email });
+    const existingEmail = await User.findOne({ email: email });
     if (existingEmail) {
       return res.status(400).json({ message: "Email already in use" });
     }
 
-    const existingUsername = await User.findOne({ userName:userName });
+    const existingUsername = await User.findOne({ userName: userName });
     if (existingUsername) {
       return res.status(400).json({ message: "Username already taken" });
     }
 
-    const existingPhone = await User.findOne({ phone:phone });
+    const existingPhone = await User.findOne({ phone: phone });
     if (existingPhone) {
       return res.status(400).json({ message: "Phone number already in use" });
     }
@@ -140,15 +142,102 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.getmydata=async(req,res)=>{
-    try{
-        const userId=req.user.id;
-        const user=await User.findById(userId);
-        if(!user){
-            return res.status(404).json({fetched:false,message:"User not found"});
-        }
-        res.status(200).json({fetched:true, user:user });
-    } catch (error) {
-        res.status(500).json({ fetched:false, message: "Failed to retrieve user data", error: error.message });
+exports.getmydata = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ fetched: false, message: "User not found" });
     }
+    res.status(200).json({ fetched: true, user: user });
+  } catch (error) {
+    res.status(500).json({ fetched: false, message: "Failed to retrieve user data", error: error.message });
+  }
+};
+
+// ============================
+//      FORGOT PASSWORD
+// ============================
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No account with that email address exists." });
+    }
+
+    // Generate a secure random token
+    const token = crypto.randomBytes(20).toString("hex");
+
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    // Nodemailer configuration
+    const transporter = nodemailer.createTransport({
+      service: process.env.EMAIL_SERVICE || "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password/${token}`;
+
+    const mailOptions = {
+      to: user.email,
+      from: `"Smart Locker Support" <${process.env.EMAIL_USER}>`,
+      subject: "Password Reset Request",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e1f5fe; border-radius: 10px; background-color: #f9f9f9;">
+          <h2 style="color: #016766; text-align: center;">Smart Locker Password Reset</h2>
+          <p>Hello,</p>
+          <p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
+          <p>Please click on the following button, or paste the link into your browser to complete the process within one hour of receiving it:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background-color: #016766; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Reset Password</a>
+          </div>
+          <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="font-size: 12px; color: #777; text-align: center;">&copy; ${new Date().getFullYear()} Smart Locker System</p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({
+      message: "A password reset link has been sent to your email."
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: "Forgot password failed", error: error.message });
+  }
+};
+
+// ============================
+//      RESET PASSWORD
+// ============================
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Password reset token is invalid or has expired." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Success! Your password has been changed." });
+  } catch (error) {
+    res.status(500).json({ message: "Reset password failed", error: error.message });
+  }
 };

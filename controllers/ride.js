@@ -48,7 +48,10 @@ exports.createRide = async (req, res) => {
       meta,
     };
 
-    const createdRide = await Ride.create(rideDoc);
+    const createdRide = await Ride.create({
+      ...rideDoc,
+      ownerId: cycle.ownerID // Capture the bike's owner
+    });
 
     return res.status(201).json({ ride: createdRide });
   } catch (err) {
@@ -125,10 +128,10 @@ exports.startRide = async (req, res) => {
 
     await Cycle.findByIdAndUpdate(ride.bikeId, { availabilityFlag: false, status: "unlocked" });
 
-    await axios.post(`${process.env.BACKEND_URL}/api/command`,{
+    await axios.post(`${process.env.BACKEND_URL}/api/command`, {
       cycleId: ride.bikeId,
       command: "unlock",
-    },{
+    }, {
       headers: {
         Authorization: req.headers.authorization
       }
@@ -173,10 +176,10 @@ exports.endRide = async (req, res) => {
       status: "locked"
     });
 
-    await axios.post(`${process.env.BACKEND_URL}/api/command`,{
+    await axios.post(`${process.env.BACKEND_URL}/api/command`, {
       cycleId: ride.bikeId,
       command: "lock",
-    },{
+    }, {
       headers: {
         Authorization: req.headers.authorization
       }

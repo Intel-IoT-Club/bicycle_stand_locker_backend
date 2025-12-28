@@ -62,16 +62,20 @@ const fareRoutes = require('./routes/fareRoutes');
 const commandRoutes = require('./routes/commandRoutes');
 const statusRoutes = require('./routes/statusRoutes');
 const logRoutes = require('./routes/logRoutes');
+const ownerRoutes = require('./routes/ownerRoutes');
+const maintenanceRoutes = require('./routes/maintenanceRoutes');
 
 app.use("/api/payments", paymentRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use('/api/cycles', cycleRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/auth', userRoutes);
-app.use('/api/fare', fareRoutes)
+app.use('/api/fare', fareRoutes);
 app.use("/api/command", commandRoutes);
 app.use("/api/status", statusRoutes);
 app.use("/api/logs", logRoutes);
+app.use("/api/owner", ownerRoutes);
+app.use("/api/maintenance", maintenanceRoutes);
 
 // 404 handler
 app.use((req, res) => {

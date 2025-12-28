@@ -1,16 +1,12 @@
 const express = require("express");
-const {signup, login,getmydata} = require("../controllers/userController");
+const { signup, login, getmydata, forgotPassword, resetPassword } = require("../controllers/userController");
 const router = express.Router();
 const auth = require("../middlewares/authenticate");
 
-router
-    .route("/signup")
-    .post(signup);
-router
-    .route("/login")
-    .post(login);
-router
-    .route("/me")
-    .get(auth,getmydata)
+router.post("/signup", signup);
+router.post("/login", login);
+router.get("/me", auth, getmydata);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 module.exports = router;

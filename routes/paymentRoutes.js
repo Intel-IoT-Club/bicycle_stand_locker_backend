@@ -48,22 +48,29 @@ router.post("/verify", async (req, res) => {
       const rechargeTx = {
         type: "Recharge",
         amount: amount,
+        runningBalance: newBalance,
         date: new Date(),
       };
       wallet.balance = newBalance;
       wallet.transactions.unshift(rechargeTx);
 
       if (amount >= 500) {
+        wallet.balance += 25;
         const cashbackTx = {
           type: "Cashback",
           amount: 25,
+          runningBalance: wallet.balance,
           date: new Date(),
         };
-        wallet.balance += 25;
         wallet.transactions.unshift(cashbackTx);
       }
 
       await wallet.save();
+
+      // Update User Model
+      const User = require("../models/User");
+      await User.findByIdAndUpdate(userId, { walletBalance: wallet.balance }).catch(e => console.error("Sync user wallet fail:", e));
+
       console.log("Payment Verified Successfully");
       res.json({ success: true, message: "Payment verified successfully", wallet });
     } else {
@@ -109,6 +116,27 @@ router.post("/verifyPay", async (req, res) => {
       ride.finalFare = ride.payment.amount;
       ride.status = "finished";
       await ride.save();
+
+      // CREDIT THE OWNER
+      if (ride.ownerId) {
+        let ownerWallet = await Wallet.findOne({ userId: ride.ownerId });
+        if (!ownerWallet) {
+          ownerWallet = await Wallet.create({ userId: ride.ownerId, balance: 0 });
+        }
+        const amount = ride.payment.amount || 0;
+        ownerWallet.balance += amount;
+        ownerWallet.transactions.unshift({
+          type: "Earnings",
+          amount: amount,
+          runningBalance: ownerWallet.balance,
+          date: new Date()
+        });
+        await ownerWallet.save();
+
+        // Sync Owner User Model
+        const User = require("../models/User");
+        await User.findByIdAndUpdate(ride.ownerId, { walletBalance: ownerWallet.balance }).catch(e => console.error("Sync Owner fail:", e));
+      }
 
       console.log("Ride Payment Verified Successfully");
       return res.status(200).json({ success: true, message: "Payment verified" });

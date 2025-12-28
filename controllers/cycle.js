@@ -2,22 +2,22 @@ const Cycle = require('../models/Cycle');
 const axios = require("axios");
 
 exports.getAllCycles = async (req, res) => {
-    try {
-        const cycles = await Cycle.find();
-        // console.log("All Cycles:", cycles);
-        res.status(200).json({ data: cycles });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  try {
+    const cycles = await Cycle.find();
+    // console.log("All Cycles:", cycles);
+    res.status(200).json({ data: cycles });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 exports.deleteAllCycles = async (req, res) => {
-    try {
-        const result = await Cycle.deleteMany({});
-        res.status(200).json({ message: "All cycles deleted", deletedCount: result.deletedCount });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  try {
+    const result = await Cycle.deleteMany({});
+    res.status(200).json({ message: "All cycles deleted", deletedCount: result.deletedCount });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 exports.getNearestCycles = async (req, res) => {
@@ -33,7 +33,7 @@ exports.getNearestCycles = async (req, res) => {
 
   try {
     const nearbyCycles = await Cycle.find({
-      availabilityFlag: true, 
+      availabilityFlag: true,
       location: {
         $nearSphere: {
           $geometry: {
@@ -210,7 +210,7 @@ exports.updateCycle = async (req, res) => {
       return res.status(400).json({ error: "Cycle id is required in URL param" });
     }
 
-    const allowed = ["availabilityFlag", "status", "battery", "lastSeen", "location", "ownerID", "cycleName"];
+    const allowed = ["availabilityFlag", "status", "lastSeen", "location", "ownerID", "cycleName", "health"];
     const updates = Object.keys(req.body);
     const isValidOp = updates.every((u) => allowed.includes(u));
 

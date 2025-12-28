@@ -37,6 +37,11 @@ const RideSchema = new Schema(
       ref: "User",
       required: true
     },
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
 
     boarding: { type: PointSchema, required: true },
     destination: { type: PointSchema, required: true },

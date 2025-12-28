@@ -24,6 +24,7 @@
     "express-session": "^1.18.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.18.1",
+    "nodemailer": "^7.0.12",
     "razorpay": "^2.9.6"
   },
   "devDependencies": {

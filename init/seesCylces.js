@@ -1,14 +1,14 @@
 const mongoose = require("mongoose");
-const Cycle = require("../models/Cycle"); // adjust path if needed
+require('dotenv').config();
+const Cycle = require("../models/Cycle");
 
-// DB connection (reuse your existing config if you have one)
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 
 const demoCyclesArray = [
   {
     cycleName: "Firefox Ranger",
     cycleId: "C001",
-    ownerID: "U001",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "Geared",
     battery: 90,
@@ -18,7 +18,7 @@ const demoCyclesArray = [
   {
     cycleName: "Hero Lectro C1",
     cycleId: "C002",
-    ownerID: "U002",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "unlocked",
     type: "NonGeared",
     battery: 65,
@@ -28,7 +28,7 @@ const demoCyclesArray = [
   {
     cycleName: "Btwin Rockrider",
     cycleId: "C003",
-    ownerID: "U003",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "Geared",
     battery: 75,
@@ -38,7 +38,7 @@ const demoCyclesArray = [
   {
     cycleName: "Montra Trance",
     cycleId: "C004",
-    ownerID: "U004",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "unlocked",
     type: "NonGeared",
     battery: 60,
@@ -48,7 +48,7 @@ const demoCyclesArray = [
   {
     cycleName: "Trek Marlin 5",
     cycleId: "C005",
-    ownerID: "U005",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "Geared",
     battery: 80,
@@ -58,7 +58,7 @@ const demoCyclesArray = [
   {
     cycleName: "Giant Escape 3",
     cycleId: "C006",
-    ownerID: "U006",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "NonGeared",
     battery: 50,
@@ -68,7 +68,7 @@ const demoCyclesArray = [
   {
     cycleName: "Firefox Bad Attitude",
     cycleId: "C007",
-    ownerID: "U007",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "unlocked",
     type: "Geared",
     battery: 88,
@@ -78,7 +78,7 @@ const demoCyclesArray = [
   {
     cycleName: "Hero Urban Trail",
     cycleId: "C008",
-    ownerID: "U008",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "NonGeared",
     battery: 40,
@@ -88,7 +88,7 @@ const demoCyclesArray = [
   {
     cycleName: "Btwin Riverside 120",
     cycleId: "C009",
-    ownerID: "U009",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "Geared",
     battery: 92,
@@ -98,7 +98,7 @@ const demoCyclesArray = [
   {
     cycleName: "Montra Helicon",
     cycleId: "C010",
-    ownerID: "U010",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "unlocked",
     type: "NonGeared",
     battery: 77,
@@ -108,7 +108,7 @@ const demoCyclesArray = [
   {
     cycleName: "Hero Sprint Next",
     cycleId: "C011",
-    ownerID: "U011",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "Geared",
     battery: 66,
@@ -118,7 +118,7 @@ const demoCyclesArray = [
   {
     cycleName: "Btwin MyBike",
     cycleId: "C012",
-    ownerID: "U012",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "unlocked",
     type: "NonGeared",
     battery: 55,
@@ -128,7 +128,7 @@ const demoCyclesArray = [
   {
     cycleName: "Firefox Voya",
     cycleId: "C013",
-    ownerID: "U013",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "Geared",
     battery: 82,
@@ -138,7 +138,7 @@ const demoCyclesArray = [
   {
     cycleName: "Trek FX1",
     cycleId: "C014",
-    ownerID: "U014",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "NonGeared",
     battery: 47,
@@ -148,7 +148,7 @@ const demoCyclesArray = [
   {
     cycleName: "Hero Hawk Nuage",
     cycleId: "C015",
-    ownerID: "U015",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "unlocked",
     type: "Geared",
     battery: 89,
@@ -158,7 +158,7 @@ const demoCyclesArray = [
   {
     cycleName: "Btwin Triban 100",
     cycleId: "C016",
-    ownerID: "U016",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "Geared",
     battery: 73,
@@ -168,7 +168,7 @@ const demoCyclesArray = [
   {
     cycleName: "Montra Blues",
     cycleId: "C017",
-    ownerID: "U017",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "NonGeared",
     battery: 68,
@@ -178,7 +178,7 @@ const demoCyclesArray = [
   {
     cycleName: "Firefox Fusion",
     cycleId: "C018",
-    ownerID: "U018",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "unlocked",
     type: "Geared",
     battery: 81,
@@ -188,7 +188,7 @@ const demoCyclesArray = [
   {
     cycleName: "Giant Contend 3",
     cycleId: "C019",
-    ownerID: "U019",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "Geared",
     battery: 78,
@@ -198,7 +198,7 @@ const demoCyclesArray = [
   {
     cycleName: "Hero Sprint RX2",
     cycleId: "C020",
-    ownerID: "U020",
+    ownerID: "69510b5bba4788f5c9417075",
     status: "locked",
     type: "NonGeared",
     battery: 59,
