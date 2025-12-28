@@ -27,11 +27,16 @@ router.post("/create-order", async (req, res) => {
 router.post("/verify", async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, amount } = req.body;
+    console.log("PAYMENT VERIFY ATTEMPT:", { razorpay_order_id, razorpay_payment_id, userId, amount });
+
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_SECRET)
       .update(body.toString())
       .digest("hex");
+
+    console.log("Expected Signature:", expectedSignature);
+    console.log("Received Signature:", razorpay_signature);
 
     if (expectedSignature === razorpay_signature) {
       let wallet = await Wallet.findOne({ userId });
@@ -59,8 +64,10 @@ router.post("/verify", async (req, res) => {
       }
 
       await wallet.save();
+      console.log("Payment Verified Successfully");
       res.json({ success: true, message: "Payment verified successfully", wallet });
     } else {
+      console.warn("Payment Verification FAILED: Signatures do not match");
       res.status(400).json({ success: false, message: "Verification failed" });
     }
   } catch (err) {
@@ -74,6 +81,8 @@ router.post("/verifyPay", async (req, res) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body.response;
     const rideData = req.body.ride;
 
+    console.log("RIDE PAYMENT VERIFYPAY ATTEMPT:", { razorpay_order_id, razorpay_payment_id, rideId: rideData?._id });
+
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({ success: false, message: "Missing payment details" });
     }
@@ -83,6 +92,9 @@ router.post("/verifyPay", async (req, res) => {
       .createHmac("sha256", process.env.RAZORPAY_SECRET)
       .update(sign.toString())
       .digest("hex");
+
+    console.log("Expected Sign:", expectedSign);
+    console.log("Received Sign:", razorpay_signature);
 
     if (expectedSign === razorpay_signature) {
       const rideId = rideData._id;
@@ -98,8 +110,10 @@ router.post("/verifyPay", async (req, res) => {
       ride.status = "finished";
       await ride.save();
 
+      console.log("Ride Payment Verified Successfully");
       return res.status(200).json({ success: true, message: "Payment verified" });
     } else {
+      console.warn("Ride Payment Verification FAILED: Signatures do not match");
       return res.status(400).json({ success: false, message: "Verification failed" });
     }
   } catch (error) {
