@@ -17,10 +17,14 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "express-session": "^1.18.2",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.18.1",
+    "nodemailer": "^7.0.12",
     "razorpay": "^2.9.6"
   },
   "devDependencies": {

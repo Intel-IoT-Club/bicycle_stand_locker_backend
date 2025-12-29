@@ -13,10 +13,14 @@ const WalletSchema = new mongoose.Schema({
     {
       type: {
         type: String,
-        enum: ["Recharge", "Cashback", "Ride Charge", "Refund"],
+        enum: ["Recharge", "Cashback", "Ride Charge", "Refund", "Earnings"],
         required: true,
       },
       amount: {
+        type: Number,
+        required: true,
+      },
+      runningBalance: {
         type: Number,
         required: true,
       },

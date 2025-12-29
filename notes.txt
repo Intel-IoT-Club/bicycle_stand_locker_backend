@@ -1,0 +1,5 @@
+
+Modifications while moving to production:
+
+1. reduce distance threshold in RideStart.js for unlocking the bike
+2. 
