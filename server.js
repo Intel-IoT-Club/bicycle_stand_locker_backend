@@ -24,16 +24,24 @@ const sessionOptions = {
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.BACKEND_URL
-]
+].map(url => url ? url.replace(/\/$/, "") : url); // Remove trailing slash
+
 app.use(cors({
   origin: (origin, callback) => {
     console.log("CORS request from:", origin);
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-      console.log("CORS blocked request from:", origin);
+    if (!origin) return callback(null, true);
+
+    // Normalize exact match check
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+
+    // Optional: Allow localhost for development if not in production? 
+    // For now strict match to env vars is best.
+
+    console.log("CORS blocked request from:", origin);
+    console.log("Allowed origins:", allowedOrigins);
+    callback(new Error("Not allowed by CORS"));
   },
   credentials: true
 }))
