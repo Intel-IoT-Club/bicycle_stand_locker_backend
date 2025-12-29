@@ -88,13 +88,16 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, userName, password, role } = req.body;
+    console.log("Login attempt payload:", { email, userName, role, password: password ? "********" : "MISSING" });
 
     if (!password || (!email && !userName)) {
+      console.warn("Login failed: Missing credentials");
       return res.status(400).json({ message: "Username/email & password required" });
     }
 
     // If role provided, verify it's valid
     if (role && !isValidRole(role)) {
+      console.warn("Login failed: Invalid role", role);
       return res
         .status(400)
         .json({ message: "Invalid role. Allowed values: 'user' or 'owner'" });
@@ -106,16 +109,19 @@ exports.login = async (req, res) => {
     // Find user (include password for comparison)
     const user = await User.findOne(query).select("+password");
     if (!user) {
+      console.warn("Login failed: User not found", query);
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     // If role was provided on login, ensure it matches stored user role
     if (role && user.role !== role) {
+      console.warn("Login failed: Role mismatch", { provided: role, actual: user.role });
       return res.status(403).json({ message: "Role mismatch for this user" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.warn("Login failed: Password incorrect");
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
@@ -126,6 +132,7 @@ exports.login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    console.log("Login successful for user:", user.email);
     res.status(200).json({
       message: "Login successful",
       token,
@@ -138,6 +145,7 @@ exports.login = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Login Error:", error);
     res.status(500).json({ message: "Login failed", error: error.message });
   }
 };
