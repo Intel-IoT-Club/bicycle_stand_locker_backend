@@ -133,26 +133,39 @@ router.post("/:userId/withdraw", async (req, res) => {
       return res.status(401).json({ success: false, message: "Incorrect PIN" });
     }
 
-    if (wallet.balance < amount) {
+    // Use specific numeric check
+    if (wallet.balance < Number(amount)) {
       return res.status(400).json({ success: false, message: "Insufficient balance" });
     }
 
-    // Process withdrawal
-    wallet.balance -= amount;
-    wallet.transactions.unshift({
-      type: "Withdrawal",
-      amount: -amount,
-      runningBalance: wallet.balance,
-      date: new Date()
-    });
-    await wallet.save();
+    // REAL PAYOUT via RazorpayX
+    // Needed to fetch User for bank details
+    const User = require("../models/User");
+    const user = await User.findById(req.params.userId);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (!user.bankDetails || !user.bankDetails.accountNumber) {
+      // Fallback or Error? 
+      // If owner didn't set bank details, we can't pay out real money.
+      // For now, let's block it or fallback to internal only (but user requested REAL).
+      return res.status(400).json({ success: false, message: "Bank details missing. Configure in dashboard." });
+    }
+
+    // Import helper
+    const { processManualPayout } = require('../services/payoutService');
+
+    const result = await processManualPayout(user, wallet, Number(amount));
 
     // Sync User model
-    const User = require("../models/User");
     await User.findByIdAndUpdate(req.params.userId, { walletBalance: wallet.balance });
 
-    res.json({ success: true, balance: wallet.balance, message: "Withdrawal successful" });
+    res.json({ success: true, balance: wallet.balance, message: `Withdrawal Successful (Ref: ${result.payoutId})` });
+
   } catch (err) {
+    console.error("Manual Withdraw Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

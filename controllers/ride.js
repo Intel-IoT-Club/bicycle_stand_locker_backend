@@ -147,6 +147,7 @@ exports.startRide = async (req, res) => {
 
 //End ride
 // End Ride
+// End Ride
 exports.endRide = async (req, res) => {
   try {
     const { distanceKm, timeMin, endLocation } = req.body;
@@ -167,9 +168,59 @@ exports.endRide = async (req, res) => {
     ride.endLocation = endLocation;
 
     // Freeze final fare
-    ride.finalFare = ride.fare;
+    // Ensure the fare is calculated if not already set or updated
+    // (Assuming updateMetrics was called, but let's be safe or just use ride.fare)
+    ride.finalFare = ride.fare || 0;
 
     await ride.save();
+
+    // ---------------------------------------------------------
+    //  FINANCIAL TRANSACTION LOGIC
+    // ---------------------------------------------------------
+
+    // Only process payment if not already paid
+    if (!ride.payment || !ride.payment.paid) {
+      const Wallet = require("../models/wallet");
+
+      // 1. DEDUCT FROM RIDER
+      let riderWallet = await Wallet.findOne({ userId: ride.riderId });
+      if (!riderWallet) {
+        riderWallet = new Wallet({ userId: ride.riderId, balance: 0, transactions: [] });
+      }
+
+      riderWallet.balance -= ride.finalFare;
+      riderWallet.transactions.push({
+        type: "Ride Charge",
+        amount: ride.finalFare,
+        runningBalance: riderWallet.balance,
+        date: new Date()
+      });
+      await riderWallet.save();
+
+      // 2. ADD TO OWNER
+      if (ride.ownerId) {
+        let ownerWallet = await Wallet.findOne({ userId: ride.ownerId });
+        if (!ownerWallet) {
+          ownerWallet = new Wallet({ userId: ride.ownerId, balance: 0, transactions: [] });
+        }
+        ownerWallet.balance += ride.finalFare;
+        ownerWallet.transactions.push({
+          type: "Earnings",
+          amount: ride.finalFare,
+          runningBalance: ownerWallet.balance,
+          date: new Date()
+        });
+        await ownerWallet.save();
+      }
+
+      // Mark as paid
+      if (!ride.payment) ride.payment = {};
+      ride.payment.paid = true;
+      ride.payment.method = "wallet_auto";
+      ride.payment.amount = ride.finalFare;
+      await ride.save();
+    }
+    // ---------------------------------------------------------
 
     await Cycle.findByIdAndUpdate(ride.bikeId, {
       availabilityFlag: true,

@@ -113,7 +113,17 @@ const UserSchema = new mongoose.Schema({
         default: Date.now
     },
     resetPasswordToken: String,
-    resetPasswordExpires: Date
+    resetPasswordExpires: Date,
+
+    // -----------------------------
+    // OWNER BANK DETAILS
+    // -----------------------------
+    bankDetails: {
+        accountName: { type: String, trim: true },
+        accountNumber: { type: String, trim: true },
+        ifsc: { type: String, trim: true, uppercase: true },
+        bankName: { type: String, trim: true }
+    }
 });
 
 // Geospatial index for querying nearby users

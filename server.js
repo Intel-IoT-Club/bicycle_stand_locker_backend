@@ -77,6 +77,7 @@ app.use("/api/command", commandRoutes);
 app.use("/api/status", statusRoutes);
 app.use("/api/logs", logRoutes);
 app.use("/api/owner", ownerRoutes);
+app.use('/api/admin', require('./routes/adminRoutes'));
 app.use("/api/maintenance", maintenanceRoutes);
 
 // 404 handler
@@ -97,6 +98,9 @@ app.use((err, req, res, next) => {
       : err.message
   });
 });
+
+const { initPayoutJob } = require('./jobs/payoutScheduler');
+initPayoutJob();
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(` Server running on port ${PORT}`));

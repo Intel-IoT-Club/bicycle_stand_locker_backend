@@ -7,7 +7,11 @@ const {
     getOwnerDashboardStats,
     toggleBikeAvailability,
     getOwnerUsers,
-    registerCycle
+    registerCycle,
+    getOwnerWalletData,
+    updateBankDetails,
+    deleteCycle,
+    deleteAllCycles
 } = require('../controllers/owner');
 
 // All owner routes require authentication
@@ -27,5 +31,10 @@ router.get('/stats', isOwner, getOwnerDashboardStats);
 router.get('/users', isOwner, getOwnerUsers);
 router.post('/register-unit', isOwner, registerCycle);
 router.patch('/bike/:bikeId/toggle', isOwner, toggleBikeAvailability);
+router.delete('/bike/:bikeId', isOwner, deleteCycle);
+router.delete('/bikes/all', isOwner, deleteAllCycles);
+
+router.get('/wallet-data', isOwner, getOwnerWalletData);
+router.post('/bank-details', isOwner, updateBankDetails);
 
 module.exports = router;
