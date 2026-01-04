@@ -1,5 +1,6 @@
 const Ride = require("../models/Ride");
 const Cycle = require("../models/Cycle");
+const Command = require("../models/Command");
 const { calculateFare } = require("../utils/fareCalculator");
 const axios = require("axios");
 
@@ -128,13 +129,9 @@ exports.startRide = async (req, res) => {
 
     await Cycle.findByIdAndUpdate(ride.bikeId, { availabilityFlag: false, status: "unlocked" });
 
-    await axios.post(`${process.env.BACKEND_URL}/api/command`, {
-      cycleId: ride.bikeId,
-      command: "unlock",
-    }, {
-      headers: {
-        Authorization: req.headers.authorization
-      }
+    await Command.create({
+      cycleId: ride.bikeId.toString(),
+      command: "unlock"
     });
 
     res.status(200).json({ ride });
@@ -240,13 +237,9 @@ exports.endRide = async (req, res) => {
 
     await Cycle.findByIdAndUpdate(ride.bikeId, updateFields);
 
-    await axios.post(`${process.env.BACKEND_URL}/api/command`, {
-      cycleId: ride.bikeId,
-      command: "lock",
-    }, {
-      headers: {
-        Authorization: req.headers.authorization
-      }
+    await Command.create({
+      cycleId: ride.bikeId.toString(),
+      command: "lock"
     });
 
     res.status(200).json({
