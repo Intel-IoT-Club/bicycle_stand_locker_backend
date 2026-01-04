@@ -21,6 +21,9 @@ router.post("/:id/start", auth, startRide);
 // End ride
 router.post("/:id/end", auth, endRide);
 
+// Cancel ride
+router.post("/:id/cancel", auth, require('../controllers/ride').cancelRide);
+
 //Get fare
 router.post("/:rideId/update-metrics", updateMetrics);
 
