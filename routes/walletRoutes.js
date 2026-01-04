@@ -1,9 +1,10 @@
 const express = require("express");
 const Wallet = require("../models/wallet");
 const router = express.Router();
+const auth = require("../middlewares/authenticate");
 
 // Get wallet details
-router.get("/:userId", async (req, res) => {
+router.get("/:userId", auth, async (req, res) => {
   try {
     let wallet = await Wallet.findOne({ userId: req.params.userId });
     if (!wallet) {
@@ -16,7 +17,7 @@ router.get("/:userId", async (req, res) => {
 });
 
 // Update wallet settings (auto-recharge, threshold)
-router.post("/:userId/settings", async (req, res) => {
+router.post("/:userId/settings", auth, async (req, res) => {
   try {
     const { autoRecharge, lowBalanceThreshold } = req.body;
     let wallet = await Wallet.findOne({ userId: req.params.userId });
@@ -33,7 +34,7 @@ router.post("/:userId/settings", async (req, res) => {
 });
 
 // Update/Set PIN
-router.post("/:userId/pin", async (req, res) => {
+router.post("/:userId/pin", auth, async (req, res) => {
   try {
     const { pin } = req.body;
     let wallet = await Wallet.findOne({ userId: req.params.userId });
@@ -49,7 +50,7 @@ router.post("/:userId/pin", async (req, res) => {
 });
 
 // Pay using wallet balance
-router.post("/:userId/pay", async (req, res) => {
+router.post("/:userId/pay", auth, async (req, res) => {
   try {
     const { amount, rideId, pin } = req.body;
     const wallet = await Wallet.findOne({ userId: req.params.userId });
@@ -121,7 +122,7 @@ router.post("/:userId/pay", async (req, res) => {
 });
 
 // Withdraw funds
-router.post("/:userId/withdraw", async (req, res) => {
+router.post("/:userId/withdraw", auth, async (req, res) => {
   try {
     const { amount, pin } = req.body;
     const wallet = await Wallet.findOne({ userId: req.params.userId });
@@ -171,7 +172,7 @@ router.post("/:userId/withdraw", async (req, res) => {
 });
 
 // Clear transactions
-router.delete("/:userId/transactions", async (req, res) => {
+router.delete("/:userId/transactions", auth, async (req, res) => {
   try {
     const wallet = await Wallet.findOne({ userId: req.params.userId });
     if (wallet) {

@@ -4,13 +4,14 @@ const crypto = require("crypto");
 const Wallet = require("../models/wallet");
 const router = express.Router();
 const Ride = require("../models/Ride");
+const auth = require("../middlewares/authenticate");
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET,
 });
 
-router.post("/create-order", async (req, res) => {
+router.post("/create-order", auth, async (req, res) => {
   try {
     const amount = Number(req.body.amount);
     if (!amount || isNaN(amount)) {
@@ -31,7 +32,7 @@ router.post("/create-order", async (req, res) => {
   }
 });
 
-router.post("/verify", async (req, res) => {
+router.post("/verify", auth, async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, amount } = req.body;
     console.log("PAYMENT VERIFY ATTEMPT:", { razorpay_order_id, razorpay_payment_id, userId, amount });
@@ -93,7 +94,7 @@ router.post("/verify", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-router.post("/verifyPay", async (req, res) => {
+router.post("/verifyPay", auth, async (req, res) => {
   try {
 
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body.response;
