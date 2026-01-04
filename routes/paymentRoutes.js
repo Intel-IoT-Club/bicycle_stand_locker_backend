@@ -7,19 +7,26 @@ const Ride = require("../models/Ride");
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_SECRET,
+  key_secret: process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET,
 });
 
 router.post("/create-order", async (req, res) => {
   try {
+    const amount = Number(req.body.amount);
+    if (!amount || isNaN(amount)) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
+
     const options = {
-      amount: req.body.amount * 100,
+      amount: Math.round(amount * 100), // convert to paise and ensure integer
       currency: "INR",
       receipt: "receipt_" + Date.now(),
     };
+    console.log("Creating Razorpay Order:", options);
     const order = await razorpay.orders.create(options);
     res.json({ order });
   } catch (err) {
+    console.error("Razorpay Order Creation Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -29,9 +36,10 @@ router.post("/verify", async (req, res) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, amount } = req.body;
     console.log("PAYMENT VERIFY ATTEMPT:", { razorpay_order_id, razorpay_payment_id, userId, amount });
 
+    const secret = process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET;
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_SECRET)
+      .createHmac("sha256", secret)
       .update(body.toString())
       .digest("hex");
 
@@ -44,17 +52,20 @@ router.post("/verify", async (req, res) => {
         wallet = new Wallet({ userId });
       }
 
-      const newBalance = wallet.balance + amount;
+      const rechargeAmount = Number(amount);
+      const newBalance = wallet.balance + rechargeAmount;
+      console.log(`Updating wallet for user ${userId}: ${wallet.balance} -> ${newBalance}`);
+
       const rechargeTx = {
         type: "Recharge",
-        amount: amount,
+        amount: rechargeAmount,
         runningBalance: newBalance,
         date: new Date(),
       };
       wallet.balance = newBalance;
       wallet.transactions.unshift(rechargeTx);
 
-      if (amount >= 500) {
+      if (rechargeAmount >= 500) {
         wallet.balance += 25;
         const cashbackTx = {
           type: "Cashback",
@@ -94,9 +105,10 @@ router.post("/verifyPay", async (req, res) => {
       return res.status(400).json({ success: false, message: "Missing payment details" });
     }
 
+    const secret = process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET;
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSign = crypto
-      .createHmac("sha256", process.env.RAZORPAY_SECRET)
+      .createHmac("sha256", secret)
       .update(sign.toString())
       .digest("hex");
 

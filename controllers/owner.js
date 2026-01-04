@@ -145,3 +145,94 @@ exports.registerCycle = async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 };
+
+// Delete a bike unit
+exports.deleteCycle = async (req, res) => {
+    try {
+        const { bikeId } = req.params;
+        // First find it to see why it fails
+        const bike = await Cycle.findById(bikeId);
+
+        if (!bike) {
+            return res.status(404).json({ success: false, message: "Bike not found" });
+        }
+
+        // Check ownership
+        if (!bike.ownerID || bike.ownerID.toString() !== req.user.id) {
+            return res.status(403).json({ success: false, message: "Unauthorized: You do not own this bike" });
+        }
+
+        await Cycle.findByIdAndDelete(bikeId);
+
+        res.status(200).json({ success: true, message: "Bike unit removed successfully" });
+    } catch (err) {
+        console.error("Delete Cycle Error:", err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// Delete ALL bikes for the current owner
+exports.deleteAllCycles = async (req, res) => {
+    try {
+        const result = await Cycle.deleteMany({ ownerID: req.user.id });
+        res.status(200).json({
+            success: true,
+            message: `Removed all ${result.deletedCount} units from your fleet.`
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// Get Owner Wallet Data (Transactions, Bank Details)
+exports.getOwnerWalletData = async (req, res) => {
+    try {
+        const ownerId = req.user.id;
+        const User = require('../models/User');
+
+        // 1. Fetch Rides (Transactions)
+        const rides = await Ride.find({ ownerId }).sort({ createdAt: -1 }).populate('riderId', 'userName email phone');
+
+        // 2. Fetch Wallet Balance
+        let wallet = await Wallet.findOne({ userId: ownerId });
+        if (!wallet) {
+            wallet = await Wallet.create({ userId: ownerId, balance: 0 });
+        }
+
+        // 3. Fetch Bank Details
+        const user = await User.findById(ownerId, 'bankDetails');
+
+        res.status(200).json({
+            success: true,
+            rides,
+            walletBalance: wallet.balance,
+            bankDetails: user.bankDetails || {}
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// Update Bank Details
+exports.updateBankDetails = async (req, res) => {
+    try {
+        const { accountName, accountNumber, ifsc, bankName } = req.body;
+        const User = require('../models/User');
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+        user.bankDetails = {
+            accountName,
+            accountNumber,
+            ifsc,
+            bankName
+        };
+
+        await user.save();
+
+        res.status(200).json({ success: true, message: "Bank details updated", bankDetails: user.bankDetails });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
