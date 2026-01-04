@@ -222,10 +222,23 @@ exports.endRide = async (req, res) => {
     }
     // ---------------------------------------------------------
 
-    await Cycle.findByIdAndUpdate(ride.bikeId, {
+    // Prepare Location Update
+    let updateFields = {
       availabilityFlag: true,
       status: "locked"
-    });
+    };
+
+    if (endLocation && endLocation.lat && endLocation.lng) {
+      updateFields.location = {
+        type: "Point",
+        coordinates: [parseFloat(endLocation.lng), parseFloat(endLocation.lat)]
+      };
+    } else if (endLocation && Array.isArray(endLocation.coordinates)) {
+      // Handle if it comes as GeoJSON already
+      updateFields.location = endLocation;
+    }
+
+    await Cycle.findByIdAndUpdate(ride.bikeId, updateFields);
 
     await axios.post(`${process.env.BACKEND_URL}/api/command`, {
       cycleId: ride.bikeId,

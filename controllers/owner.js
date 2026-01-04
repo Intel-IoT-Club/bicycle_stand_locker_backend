@@ -150,14 +150,23 @@ exports.registerCycle = async (req, res) => {
 exports.deleteCycle = async (req, res) => {
     try {
         const { bikeId } = req.params;
-        const bike = await Cycle.findOneAndDelete({ _id: bikeId, ownerID: req.user.id });
+        // First find it to see why it fails
+        const bike = await Cycle.findById(bikeId);
 
         if (!bike) {
-            return res.status(404).json({ success: false, message: "Bike not found or unauthorized" });
+            return res.status(404).json({ success: false, message: "Bike not found" });
         }
+
+        // Check ownership
+        if (!bike.ownerID || bike.ownerID.toString() !== req.user.id) {
+            return res.status(403).json({ success: false, message: "Unauthorized: You do not own this bike" });
+        }
+
+        await Cycle.findByIdAndDelete(bikeId);
 
         res.status(200).json({ success: true, message: "Bike unit removed successfully" });
     } catch (err) {
+        console.error("Delete Cycle Error:", err);
         res.status(500).json({ success: false, error: err.message });
     }
 };
