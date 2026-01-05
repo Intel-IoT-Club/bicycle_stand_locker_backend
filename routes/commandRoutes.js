@@ -57,4 +57,31 @@ router.get('/:cycleId', auth, async (req, res) => {
     }
 });
 
+// POST /api/command/device/:cycleId/status - ESP32 sends lock status
+router.post('/device/:cycleId/status', async (req, res) => {
+    try {
+        const { cycleId } = req.params;
+        const { status } = req.body; // Expect specific sensor value 1 (locked) or 0 (unlocked)
+
+        const Cycle = require('../models/Cycle');
+        const cycle = await Cycle.findOne({ cycleId });
+
+        if (!cycle) {
+            return res.status(404).json({ error: 'Cycle not found' });
+        }
+
+        // Map sensor value to status string
+        // 1 -> locked, 0 -> unlocked
+        cycle.status = status === 1 ? 'locked' : 'unlocked';
+        cycle.lastSeen = Date.now();
+
+        await cycle.save();
+
+        res.json({ success: true, message: 'Status updated' });
+    } catch (err) {
+        console.error("Error updating status:", err);
+        res.status(500).json({ error: 'Error updating status' });
+    }
+});
+
 module.exports = router;
