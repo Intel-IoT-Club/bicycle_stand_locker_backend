@@ -25,6 +25,25 @@ router.post('/', auth, async (req, res) => {
     }
 });
 
+// GET /api/command/device/:cycleId - Public endpoint for ESP32 to poll latest command
+router.get('/device/:cycleId', async (req, res) => {
+    try {
+        const { cycleId } = req.params;
+        // Fetch the very latest command for this cycle
+        const command = await Command.findOne({ cycleId }).sort({ createdAt: -1 });
+
+        // If no command found, default to 'lock' for safety, or return null
+        if (!command) {
+            return res.json({ command: 'lock' });
+        }
+
+        res.json({ command: command.command });
+    } catch (err) {
+        console.error("Error fetching device command:", err);
+        res.status(500).json({ error: 'Error fetching command' });
+    }
+});
+
 // GET /api/command/:cycleId - ESP32 fetches latest command
 router.get('/:cycleId', auth, async (req, res) => {
     try {

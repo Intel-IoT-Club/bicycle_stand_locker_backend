@@ -88,7 +88,6 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, userName, password, role } = req.body;
-    console.log("Login attempt payload:", { email, userName, role, password: password ? "********" : "MISSING" });
 
 
     if (!password || (!email && !userName)) {

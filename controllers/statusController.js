@@ -14,7 +14,16 @@ exports.updateStatus = async (req, res) => {
         };
 
         if (battery !== undefined) updateFields.battery = battery;
-        if (location !== undefined) updateFields.location = location;
+        if (location !== undefined) {
+            if (location.lat && location.lng) {
+                updateFields.location = {
+                    type: 'Point',
+                    coordinates: [location.lng, location.lat]
+                };
+            } else {
+                updateFields.location = location;
+            }
+        }
         if (status !== undefined) {
             if (['locked', 'unlocked'].includes(status)) {
                 updateFields.status = status;
