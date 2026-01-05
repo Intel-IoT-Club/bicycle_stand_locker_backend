@@ -89,6 +89,7 @@ exports.login = async (req, res) => {
   try {
     const { email, userName, password, role } = req.body;
 
+
     if (!password || (!email && !userName)) {
       console.warn("Login failed: Missing credentials");
       return res.status(400).json({ message: "Username/email & password required" });
