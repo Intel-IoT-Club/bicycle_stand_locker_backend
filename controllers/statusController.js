@@ -4,6 +4,7 @@ const Log = require('../models/Log');
 exports.updateStatus = async (req, res) => {
     try {
         const { cycleId, battery, location, tamper, status } = req.body;
+        const mongoose = require('mongoose');
 
         if (!cycleId) {
             return res.status(400).json({ error: 'cycleId is required' });
@@ -27,19 +28,33 @@ exports.updateStatus = async (req, res) => {
         if (status !== undefined) {
             if (['locked', 'unlocked'].includes(status)) {
                 updateFields.status = status;
+                // Automatically update availability based on lock status
+                // Unlocked (In Use) -> Not Available
+                // Locked (Idle) -> Available
+                updateFields.availabilityFlag = (status === 'locked');
             }
+        }
+
+        // Build query to find by _id OR cycleId
+        const query = { $or: [{ cycleId: cycleId }] };
+        if (mongoose.Types.ObjectId.isValid(cycleId)) {
+            query.$or.push({ _id: cycleId });
         }
 
         // Update cycle status
         const updatedCycle = await Cycle.findOneAndUpdate(
-            { cycleId },
+            query,
             updateFields,
-            { upsert: true, new: true } // Upsert might not be desired if we only want to log for existing cycles, but keeping existing behavior
+            { new: true } // Removed upsert: true to prevent ghost cycling
         );
+
+        if (!updatedCycle) {
+            return res.status(404).json({ error: 'Cycle not found' });
+        }
 
         // Log tamper if present and true
         if (tamper) {
-            const newLog = new Log({ cycleId, type: 'tamper', message: 'Tamper detected' });
+            const newLog = new Log({ cycleId: updatedCycle.cycleId, type: 'tamper', message: 'Tamper detected' });
             await newLog.save();
         }
 
