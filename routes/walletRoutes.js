@@ -57,9 +57,10 @@ router.post("/:userId/pay", auth, async (req, res) => {
 
     if (!wallet) return res.status(404).json({ success: false, message: "Wallet not found" });
 
-    // Check PIN if set
-    if (wallet.pin && wallet.pin !== pin) {
-      return res.status(401).json({ success: false, message: "Incorrect PIN" });
+    // PIN Verification
+    const isPinCorrect = await wallet.verifyPin(req.body.pin);
+    if (!isPinCorrect) {
+      return res.status(401).json({ success: false, message: "Incorrect Wallet PIN" });
     }
 
     if (wallet.balance < amount) {
@@ -84,7 +85,8 @@ router.post("/:userId/pay", auth, async (req, res) => {
         if (!ride.payment) ride.payment = {};
         ride.payment.paid = true;
         ride.payment.method = "wallet";
-        ride.status = "finished";
+        // Use status from body if provided, otherwise default to "finished"
+        ride.status = req.body.status || "finished";
         ride.fare = amount;
         ride.finalFare = amount;
         await ride.save();
