@@ -127,7 +127,7 @@ router.post("/verifyPay", auth, async (req, res) => {
       ride.payment.paid = true;
       ride.fare = ride.payment.amount;
       ride.finalFare = ride.payment.amount;
-      ride.status = req.body.status || "finished";
+      ride.status = "finished";
       await ride.save();
 
       // CREDIT THE OWNER
