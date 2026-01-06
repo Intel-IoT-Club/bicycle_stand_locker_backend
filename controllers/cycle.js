@@ -140,8 +140,10 @@ exports.getNearestCycles = async (req, res) => {
     res.status(200).json({ cycles: cyclesWithETA });
 
   } catch (error) {
-    console.error(error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to fetch matrix data" });
+    const status = error.response?.status || 500;
+    const errorMessage = error.response?.data?.error || error.message || "Failed to fetch matrix data";
+    console.error(`ORS Error: ${status} - ${JSON.stringify(error.response?.data || error.message)}`);
+    res.status(status).json({ error: errorMessage });
   }
 };
 
